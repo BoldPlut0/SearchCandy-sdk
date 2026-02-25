@@ -11,7 +11,7 @@ pip install tgm-sdk
 Or install from source:
 
 ```bash
-pip install git+https://github.com/BoldPlut0/tgm-sdk.git
+pip install git+https://github.com/BoldPlut0/SearchCandy-sdk.git
 ```
 
 ## Quick Start
