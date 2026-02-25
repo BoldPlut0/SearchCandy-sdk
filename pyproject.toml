@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tgm-sdk"
+version = "0.1.0"
+description = "Python SDK for Temporal Graph Memory — Self-Organizing Knowledge Graph"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "SearchCandy Labs"},
+]
+keywords = ["knowledge-graph", "temporal", "graph-memory", "sdk", "tgm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-httpx>=0.30",
+]
+
+[project.urls]
+Homepage = "https://github.com/BoldPlut0/tgm-sdk"
+Documentation = "https://docs.tgm.dev"
+Repository = "https://github.com/BoldPlut0/tgm-sdk"
+Issues = "https://github.com/BoldPlut0/tgm-sdk/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tgm_sdk*"]
