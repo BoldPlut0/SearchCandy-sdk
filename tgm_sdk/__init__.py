@@ -1,5 +1,5 @@
-from tgm_sdk.client import TGMClient
-from tgm_sdk.exceptions import TGMError, AuthenticationError, GraphNotFoundError, NodeNotFoundError
+from .client import TGMClient
+from .exceptions import TGMError
 
-__all__ = ["TGMClient", "TGMError", "AuthenticationError", "GraphNotFoundError", "NodeNotFoundError"]
-__version__ = "0.1.0"
+__all__ = ["TGMClient", "TGMError"]
+__version__ = "0.2.0"

@@ -59,6 +59,99 @@ class TGMClient:
             raise TGMError(response.status_code, detail)
         return response.json()
     
+    # --- Authentication ---
+    
+    def signup(self, email: str, password: str, first_name: str = "", last_name: str = "") -> dict:
+        """
+        Register a new user.
+        
+        Args:
+            email: User's email address
+            password: Password (min 8 chars, uppercase, lowercase, number, special char)
+            first_name: User's first name
+            last_name: User's last name
+        
+        Returns:
+            Dict with user_id, email, api_key, confirmed status
+        """
+        return self._request("POST", "/v1/auth/signup", json={
+            "email": email,
+            "password": password,
+            "first_name": first_name,
+            "last_name": last_name
+        })
+    
+    def confirm_signup(self, email: str, code: str) -> dict:
+        """
+        Confirm registration with verification code sent to email.
+        
+        Args:
+            email: The email used during signup
+            code: The verification code from the email
+        
+        Returns:
+            Dict with confirmation status
+        """
+        return self._request("POST", "/v1/auth/confirm", json={
+            "email": email,
+            "code": code
+        })
+    
+    def signin(self, email: str, password: str) -> dict:
+        """
+        Sign in and get API key + access token.
+        
+        Automatically sets the API key for subsequent requests.
+        
+        Args:
+            email: User's email address
+            password: User's password
+        
+        Returns:
+            Dict with user_id, api_key, access_token, refresh_token, expires_in
+        """
+        result = self._request("POST", "/v1/auth/signin", json={
+            "email": email,
+            "password": password
+        })
+        # Auto-set the API key for subsequent requests
+        if "api_key" in result and result["api_key"]:
+            self._client.headers["X-API-Key"] = result["api_key"]
+        return result
+    
+    def create_api_key(self, name: str = "default") -> dict:
+        """
+        Create an additional API key.
+        
+        Args:
+            name: A label for the API key
+        
+        Returns:
+            Dict with key_id, api_key, name, created_at
+        """
+        return self._request("POST", "/v1/auth/keys", json={"name": name})
+    
+    def list_api_keys(self) -> list:
+        """
+        List all API keys for the current user.
+        
+        Returns:
+            List of API key objects with key_id, name, prefix, created_at
+        """
+        return self._request("GET", "/v1/auth/keys")
+    
+    def revoke_api_key(self, key_id: str) -> dict:
+        """
+        Revoke an API key.
+        
+        Args:
+            key_id: The ID of the key to revoke
+        
+        Returns:
+            Dict with revocation confirmation
+        """
+        return self._request("DELETE", f"/v1/auth/keys/{key_id}")
+    
     # --- Health ---
     
     def health(self) -> dict:
