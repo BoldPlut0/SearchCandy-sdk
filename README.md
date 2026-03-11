@@ -1,17 +1,13 @@
-# TGM SDK — Python Client for Temporal Graph Memory
+# SearchCandy Python SDK
 
-A lightweight Python SDK for interacting with the [TGM API](https://tgm.dev) — a self-organizing knowledge graph database.
+**The Hippocampus of AI** — Save up to 75% of your context window.
+
+SearchCandy is a self-organizing knowledge graph that gives AI agents instant access to codebases without stuffing the context window. Sync your files, ask questions, get focused context.
 
 ## Installation
 
 ```bash
-pip install tgm-sdk
-```
-
-Or install from source:
-
-```bash
-pip install git+https://github.com/BoldPlut0/SearchCandy-sdk.git
+pip install searchcandy
 ```
 
 ## Quick Start
@@ -19,84 +15,154 @@ pip install git+https://github.com/BoldPlut0/SearchCandy-sdk.git
 ```python
 from tgm_sdk import TGMClient
 
-# Connect to TGM API
-client = TGMClient(base_url="https://api.tgm.dev", api_key="tgm_sk_xxx")
+# Initialize
+client = TGMClient(
+    base_url="https://api.searchcandy-labs.com",
+    api_key="sk_live_..."
+)
 
-# Create a knowledge graph
-graph = client.create_graph("my-project", name="My Project")
+# Create a graph for your project
+client.create_graph("my-project", name="My Project")
 
-# Ingest documents
-client.ingest(graph["graph_id"], [
-    {"content": "Your document text here...", "title": "readme.md"}
+# Sync your files (builds the knowledge graph automatically)
+client.sync("my-project", files=[
+    {"source_id": "auth.py", "content": open("auth.py").read()},
+    {"source_id": "routes.py", "content": open("routes.py").read()},
+    {"source_id": "database.py", "content": open("database.py").read()},
 ])
 
-# Query the graph
-result = client.retrieve(graph["graph_id"], "How does authentication work?")
-print(result["context"])  # Assembled context from the knowledge graph
-print(result["nodes"])    # Evidence nodes with sources
+# Query — get focused context for your AI agent
+result = client.retrieve("my-project", "How does JWT authentication work?")
+print(result["context"])  # Exact source code chunks, ready for your LLM
 ```
 
-## Features
+## Core APIs
 
-- **Ingest** any text, code, logs, or documents into a self-organizing knowledge graph
-- **Retrieve** context using physics-based graph traversal
-- **Mutate** nodes (replace, delete) with automatic edge inheritance
-- **Time Travel** — query the graph at any point in history
-- **Branching** — create parallel timelines for A/B testing
-- **Multi-graph** — manage multiple independent knowledge graphs
-
-## API Methods
-
-| Method | Description |
-|--------|-------------|
-| `create_graph()` | Create a new knowledge graph |
-| `list_graphs()` | List all graphs |
-| `get_graph()` | Get graph details |
-| `delete_graph()` | Delete a graph |
-| `ingest()` | Ingest documents into a graph |
-| `ingest_text()` | Ingest a single text document |
-| `ingest_file()` | Ingest a file from disk |
-| `retrieve()` | Query the knowledge graph |
-| `get_node()` | Get a specific node |
-| `replace_node()` | Replace a node with new content |
-| `delete_node()` | Delete a node (void marker) |
-| `batch_replace()` | Atomically replace multiple nodes |
-| `get_edge()` | Get a specific edge |
-| `get_node_edges()` | Get all edges for a node |
-| `get_timeline()` | Get current tick and branches |
-| `create_branch()` | Create a new branch |
-| `activate_branch()` | Switch to a branch |
-| `merge_branch()` | Merge a branch |
-| `get_query_history()` | Get query history |
-| `export_graph()` | Export graph snapshot |
-| `compact_graph()` | Compact graph storage |
-| `get_stats()` | Get graph statistics |
-
-## Context Manager
+### Sync Files (Primary API)
 
 ```python
-with TGMClient(base_url="https://api.tgm.dev", api_key="tgm_sk_xxx") as client:
-    result = client.retrieve("my-graph", "What is TGM?")
-    print(result["context"])
-# Connection automatically closed
+# Sync changed files — only changed parts get re-processed
+client.sync("my-project", files=[
+    {"source_id": "auth.py", "content": new_content},
+])
+
+# Sync a single file
+client.sync_file("my-project", "auth.py", new_content)
+
+# Delete a file from the graph
+client.sync_delete("my-project", "old_utils.py")
+
+# Sync an entire directory
+client.sync_directory("my-project", "./src", extensions=[".py", ".ts"])
 ```
 
-## Error Handling
+### Retrieve Context
 
 ```python
-from tgm_sdk import TGMClient, TGMError, GraphNotFoundError
+# Single query
+result = client.retrieve("my-project", "How does auth work?")
+print(result["context"])       # The context string — feed to your LLM
+print(result["total_results"]) # Number of chunks found
 
-try:
-    client.get_graph("nonexistent")
-except GraphNotFoundError as e:
-    print(f"Graph not found: {e.detail}")
-except TGMError as e:
-    print(f"API error {e.status_code}: {e.detail}")
+# Batch queries (multiple questions at once)
+result = client.batch_retrieve("my-project", queries=[
+    "How does auth work?",
+    "What database tables exist?",
+    "What API endpoints are available?",
+])
+for r in result["results"]:
+    print(f"{r['query']}: {len(r['context'])} chars")
 ```
 
-## API Reference
+### Conversation Branching
 
-See the [full API documentation](https://docs.tgm.dev/api-reference).
+```python
+# Branch from a specific version (like git)
+client.sync("my-project", 
+    files=[{"source_id": "auth.py", "content": oauth_code}],
+    branch_from_version=10, 
+    new_branch="try-oauth"
+)
+
+# Query on the branch
+result = client.retrieve("my-project", "How does auth work?", branch="try-oauth")
+# → Returns OAuth code
+
+# Query on main (original code still there)
+result = client.retrieve("my-project", "How does auth work?", branch="main")
+# → Returns original code
+```
+
+### Graph Management
+
+```python
+# Create
+client.create_graph("my-project", name="My Project", description="...")
+
+# List all graphs
+graphs = client.list_graphs()
+
+# Get info
+info = client.get_graph("my-project")
+print(f"Nodes: {info['node_count']}, Edges: {info['edge_count']}")
+
+# List source files
+sources = client.list_sources("my-project")
+for s in sources["sources"]:
+    print(f"{s['source_id']}: {s['node_count']} chunks")
+
+# Delete
+client.delete_graph("my-project")
+```
+
+### Version History & Branches
+
+```python
+# Get timeline
+timeline = client.get_timeline("my-project")
+print(f"Version: {timeline['current_tick']}, Branch: {timeline['active_branch']}")
+
+# Create a branch
+client.create_branch("my-project", "experiment", name="Experiment Branch")
+
+# Switch branches
+client.activate_branch("my-project", "experiment")
+
+# Merge
+client.merge_branch("my-project", "experiment")
+```
+
+## How It Works
+
+1. **Sync** your files → SearchCandy chunks, embeds, and connects them into a knowledge graph
+2. **Query** in natural language → SearchCandy walks the graph and returns focused context (~2-3K chars)
+3. **Update** a file → Only the changed parts get re-processed (git-style hash diff)
+
+No schema, no config, no manual chunking. The graph self-organizes from your data.
+
+## Authentication
+
+```python
+# Sign up
+client.signup("you@company.com", "YourPassword123!")
+
+# Confirm email
+client.confirm_signup("you@company.com", "123456")
+
+# Sign in (auto-sets API key for subsequent requests)
+client.signin("you@company.com", "YourPassword123!")
+```
+
+## Requirements
+
+- Python 3.8+
+- `httpx` (installed automatically)
+
+## Links
+
+- [Documentation](https://docs.searchcandy-labs.com)
+- [API Reference](https://docs.searchcandy-labs.com/api)
+- [GitHub](https://github.com/searchcandy-labs/searchcandy-python)
 
 ## License
 

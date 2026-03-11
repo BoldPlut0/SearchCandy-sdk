@@ -212,30 +212,136 @@ class TGMClient:
         title = os.path.basename(file_path)
         return self.ingest_text(graph_id, content, title, source_id=title)
     
+    # --- Sync (Live File Updates) ---
+    
+    def sync(self, graph_id: str, files: List[Dict[str, str]],
+             branch: str = None, branch_from_version: int = None,
+             new_branch: str = None) -> dict:
+        """
+        Sync changed files to the graph.
+        
+        This is the primary way to keep the graph up to date as code changes.
+        Send one or more files with their new content and the system will
+        detect what changed (hash-diff) and only re-process the differences.
+        
+        Args:
+            graph_id: The graph to sync to
+            files: List of dicts with:
+                - source_id (str, required): File identifier (e.g., "src/auth.py")
+                - content (str, optional): File content. Required unless action is "delete".
+                - action (str, optional): "auto" (default), "create", "delete", "replace_all"
+            branch: Which branch to sync to (default: active branch)
+            branch_from_version: Create new branch from this version first
+            new_branch: Name for the new branch (required with branch_from_version)
+        
+        Returns:
+            Dict with version, branch, files (per-file changes), total_changes
+        """
+        payload = {"files": files}
+        if branch:
+            payload["branch"] = branch
+        if branch_from_version is not None:
+            payload["branch_from_version"] = branch_from_version
+        if new_branch:
+            payload["new_branch"] = new_branch
+        return self._request("POST", f"/v1/graphs/{graph_id}/sync", json=payload)
+    
+    def sync_file(self, graph_id: str, source_id: str, content: str, action: str = "auto") -> dict:
+        """Convenience method to sync a single file."""
+        return self.sync(graph_id, [{"source_id": source_id, "content": content, "action": action}])
+    
+    def sync_delete(self, graph_id: str, source_id: str) -> dict:
+        """Convenience method to delete a file from the graph."""
+        return self.sync(graph_id, [{"source_id": source_id, "action": "delete"}])
+    
+    def sync_directory(self, graph_id: str, directory: str, extensions: List[str] = None) -> dict:
+        """
+        Sync all files from a directory.
+        
+        Args:
+            graph_id: The graph to sync to
+            directory: Path to the directory
+            extensions: List of file extensions to include (e.g., [".py", ".md"]).
+                       If None, includes .py, .js, .ts, .md, .txt, .yaml, .json
+        """
+        import os
+        import glob
+        
+        if extensions is None:
+            extensions = [".py", ".js", ".ts", ".jsx", ".tsx", ".md", ".txt", ".yaml", ".yml", ".json", ".toml"]
+        
+        files = []
+        for ext in extensions:
+            for path in glob.glob(os.path.join(directory, "**", f"*{ext}"), recursive=True):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    rel_path = os.path.relpath(path, directory)
+                    files.append({"source_id": rel_path, "content": content})
+                except (UnicodeDecodeError, IOError):
+                    continue
+        
+        if not files:
+            return {"total_changes": 0, "files": {}}
+        
+        return self.sync(graph_id, files)
+    
     # --- Retrieval ---
     
-    def retrieve(self, graph_id: str, query: str, target_tick: int = None, 
-                 branch_id: str = None, top_k: int = 20, token_limit: int = 8192) -> dict:
+    def retrieve(self, graph_id: str, query: str, branch: str = None,
+                 version: int = None, max_context_chars: int = 3500) -> dict:
         """
         Query the knowledge graph.
         
         Args:
             graph_id: The graph to query
             query: Natural language query
-            target_tick: Optional tick for time travel
-            branch_id: Optional branch for multiverse queries
-            top_k: Number of anchor nodes to find
-            token_limit: Max tokens in assembled context
+            branch: Optional branch to query (default: active branch)
+            version: Optional version for time travel queries
+            max_context_chars: Max characters in context (default: 3500)
         
         Returns:
-            Dict with context, nodes, total_nodes, execution_time
+            Dict with context, results, total_results, execution_time_ms
         """
-        payload = {"query": query, "top_k": top_k, "token_limit": token_limit}
-        if target_tick is not None:
-            payload["target_tick"] = target_tick
-        if branch_id:
-            payload["branch_id"] = branch_id
+        payload = {"query": query, "max_context_chars": max_context_chars}
+        if version is not None:
+            payload["version"] = version
+        if branch:
+            payload["branch"] = branch
         return self._request("POST", f"/v1/graphs/{graph_id}/retrieve", json=payload)
+    
+    def batch_retrieve(self, graph_id: str, queries: List[str], branch: str = None,
+                       version: int = None, max_context_chars: int = 3500) -> dict:
+        """
+        Run multiple retrieval queries at once.
+        
+        Args:
+            graph_id: The graph to query
+            queries: List of natural language queries
+            branch: Optional branch to query
+            version: Optional version for time travel
+            max_context_chars: Max characters per query context
+        
+        Returns:
+            Dict with results (list of per-query results), total_execution_time_ms
+        """
+        payload = {"queries": queries, "max_context_chars": max_context_chars}
+        if version is not None:
+            payload["version"] = version
+        if branch:
+            payload["branch"] = branch
+        return self._request("POST", f"/v1/graphs/{graph_id}/retrieve/batch", json=payload)
+    
+    # --- Sources ---
+    
+    def list_sources(self, graph_id: str) -> dict:
+        """
+        List all source files in the graph.
+        
+        Returns:
+            Dict with sources (list of source info), total_sources
+        """
+        return self._request("GET", f"/v1/graphs/{graph_id}/sources")
     
     # --- Node Operations ---
     

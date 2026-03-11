@@ -1,20 +1,20 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "tgm-sdk"
-version = "0.1.0"
-description = "Python SDK for Temporal Graph Memory — Self-Organizing Knowledge Graph"
+name = "searchcandy"
+version = "0.2.0"
+description = "Python SDK for SearchCandy — The Hippocampus of AI. Self-organizing knowledge graph for AI agents."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [
     {name = "SearchCandy Labs"},
 ]
-keywords = ["knowledge-graph", "temporal", "graph-memory", "sdk", "tgm"]
+keywords = ["searchcandy", "knowledge-graph", "rag", "ai-agents", "retrieval", "context-window", "llm"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -24,22 +24,23 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
     "httpx>=0.25",
 ]
 
+[project.urls]
+Homepage = "https://searchcandy-labs.com"
+Documentation = "https://docs.searchcandy-labs.com"
+Repository = "https://github.com/searchcandy-labs/searchcandy-python"
+Issues = "https://github.com/searchcandy-labs/searchcandy-python/issues"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
-    "pytest-httpx>=0.30",
+    "pytest-asyncio>=0.21",
 ]
-
-[project.urls]
-Homepage = "https://github.com/BoldPlut0/SearchCandy-sdk"
-Documentation = "https://docs.tgm.dev"
-Repository = "https://github.com/BoldPlut0/SearchCandy-sdk"
-Issues = "https://github.com/BoldPlut0/SearchCandy-sdk/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
