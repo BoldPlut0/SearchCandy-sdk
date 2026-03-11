@@ -11,7 +11,7 @@ SearchCandy is a self-organizing knowledge graph that gives AI agents instant ac
 ## Installation
 
 ```bash
-pip install searchcandy
+pip install tgm
 ```
 
 ## Quick Start
